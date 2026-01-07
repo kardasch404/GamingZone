@@ -1,0 +1,7 @@
+API Gateway       → 42100 (GraphQL)
+Auth Service      → 42110 (REST + gRPC)
+Catalog Service   → 42120 (REST + gRPC)
+Inventory Service → 42130 (REST + gRPC)
+Order Service     → 42140 (REST + gRPC)
+Payment Service   → 42150 (REST + Webhooks)
+Notification Svc  → 42160 (WebSocket + Email)
