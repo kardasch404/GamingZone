@@ -1,0 +1,13 @@
+main (production-ready, protected)
+  └── staging (pre-production testing)
+      └── develop (integration branch)
+          ├── feature/GZ-001-project-setup
+          ├── feature/GZ-002-auth-jwt
+          ├── feature/GZ-003-rbac-system
+          ├── feature/GZ-004-catalog-products
+          ├── feature/GZ-005-inventory-management
+          ├── feature/GZ-006-order-workflow
+          ├── feature/GZ-007-payment-stripe
+          ├── feature/GZ-008-notifications
+          ├── feature/GZ-009-websockets
+          └── hotfix/* (emergency fixes)

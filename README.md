@@ -1,101 +1,151 @@
-# GamingZone
+# 🎮 GamingZone - E-Commerce Microservices Platform
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+## 📋 Project Vision
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+GamingZone is a modern, scalable e-commerce platform built with microservices architecture, designed specifically for gaming products. The platform leverages cutting-edge technologies to deliver high performance, reliability, and maintainability.
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/nest?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+## 🏗️ Architecture Overview
 
-## Run tasks
+### Microservices Structure
 
-To run the dev server for your app, use:
+- **API Gateway** (Port: 42100) - GraphQL unified entry point
+- **Auth Service** (Port: 42110) - Authentication, authorization, RBAC
+- **Catalog Service** (Port: 42120) - Product management, categories, promotions
+- **Inventory Service** (Port: 42130) - Stock management, reservations
+- **Order Service** (Port: 42140) - Order processing, cart management
+- **Payment Service** (Port: 42150) - Payment processing, Stripe integration
+- **Notification Service** (Port: 42160) - Email, WebSocket notifications
 
-```sh
-npx nx serve gaming-zone
+### Technology Stack
+
+- **Framework**: NestJS (Node.js)
+- **Monorepo**: Nx Workspace
+- **Database**: PostgreSQL with Prisma ORM
+- **Cache**: Redis
+- **Message Broker**: RabbitMQ
+- **API**: GraphQL (Gateway) + REST + gRPC
+- **Container**: Docker + Kubernetes
+- **CI/CD**: Jenkins
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js >= 18.x
+- npm >= 9.x
+- Docker & Docker Compose
+- PostgreSQL 15+
+- Redis 7+
+- RabbitMQ 3.12+
+
+### Installation
+
+```bash
+# Install dependencies
+npm install
+
+# Run all services in development
+nx run-many --target=serve --all
+
+# Build all services
+nx run-many --target=build --all
+
+# Run tests
+nx run-many --target=test --all
+
+# Lint all projects
+nx run-many --target=lint --all
 ```
 
-To create a production bundle:
+## 📁 Project Structure
 
-```sh
-npx nx build gaming-zone
+```
+gamingzone/
+├── apps/                    # Microservices applications
+│   ├── api-gateway/        # GraphQL Gateway
+│   ├── auth-service/       # Authentication & Authorization
+│   ├── catalog-service/    # Product Catalog
+│   ├── inventory-service/  # Inventory Management
+│   ├── order-service/      # Order Processing
+│   ├── payment-service/    # Payment Integration
+│   └── notification-service/ # Notifications
+├── libs/                    # Shared libraries
+│   ├── shared/             # Common utilities, DTOs, decorators
+│   ├── events/             # Event definitions
+│   └── config/             # Shared configurations
+├── devops/                  # DevOps configurations
+│   ├── docker/             # Docker files
+│   ├── kubernetes/         # K8s manifests
+│   └── jenkins/            # CI/CD pipelines
+└── docs/                    # Documentation
 ```
 
-To see all available targets to run for a project, run:
+## 🔧 Development Workflow
 
-```sh
-npx nx show project gaming-zone
+### Branch Strategy
+
+- `main` - Production-ready code
+- `staging` - Pre-production testing
+- `develop` - Integration branch
+- `feature/*` - Feature development
+- `bugfix/*` - Bug fixes
+- `hotfix/*` - Production hotfixes
+
+### Commit Convention
+
+```
+GZ-XXX: Brief description
+
+Detailed explanation of changes
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+## 📊 Key Features
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- ✅ Event-driven architecture with RabbitMQ
+- ✅ CQRS pattern for scalability
+- ✅ Redis caching for performance
+- ✅ JWT-based authentication
+- ✅ Dynamic RBAC system
+- ✅ Real-time notifications via WebSocket
+- ✅ Distributed transactions with Saga pattern
+- ✅ Comprehensive error handling
+- ✅ API rate limiting
+- ✅ Request logging and monitoring
 
-## Add new projects
+## 🧪 Testing
 
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
+```bash
+# Unit tests
+nx test <service-name>
 
-Use the plugin's generator to create new projects.
+# E2E tests
+nx e2e <service-name>-e2e
 
-To generate a new application, use:
-
-```sh
-npx nx g @nx/nest:app demo
+# Test coverage
+nx test <service-name> --coverage
 ```
 
-To generate a new library, use:
+## 📦 Deployment
 
-```sh
-npx nx g @nx/node:lib mylib
+```bash
+# Build Docker images
+docker-compose build
+
+# Start all services
+docker-compose up -d
+
+# Deploy to Kubernetes
+kubectl apply -f devops/kubernetes/
 ```
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
+## 📝 License
 
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+MIT
 
-## Set up CI!
+## 👥 Team
 
-### Step 1
+GamingZone Development Team
 
-To connect to Nx Cloud, run the following command:
+---
 
-```sh
-npx nx connect
-```
-
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
-```
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/nx-api/nest?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+**Built with ❤️ using NestJS and Nx**
