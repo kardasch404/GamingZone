@@ -1,0 +1,612 @@
+classDiagram
+    %% ============ DOMAIN MODELS ============
+    
+    class User {
+        +UUID id
+        +string email
+        +string passwordHash
+        +string firstName
+        +string lastName
+        +string phone
+        +boolean isActive
+        +boolean emailVerified
+        +DateTime createdAt
+        +DateTime updatedAt
+        +UUID roleId
+        +Role role
+        +Order[] orders
+        +Cart cart
+        +Address[] addresses
+    }
+
+    class Role {
+        +UUID id
+        +string name
+        +string code
+        +string description
+        +boolean isSystem
+        +int priority
+        +DateTime createdAt
+        +DateTime updatedAt
+        +Permission[] permissions
+        +User[] users
+    }
+
+    class Permission {
+        +UUID id
+        +string resource
+        +string action
+        +string description
+        +boolean isSystem
+        +DateTime createdAt
+        +Role[] roles
+    }
+
+    class Address {
+        +UUID id
+        +UUID userId
+        +string type
+        +string fullName
+        +string addressLine1
+        +string addressLine2
+        +string city
+        +string postalCode
+        +string country
+        +string phone
+        +boolean isDefault
+        +DateTime createdAt
+        +User user
+    }
+
+    class Category {
+        +UUID id
+        +string name
+        +string slug
+        +string description
+        +string imageUrl
+        +string icon
+        +int displayOrder
+        +boolean isActive
+        +boolean isFeatured
+        +DateTime createdAt
+        +DateTime updatedAt
+        +UUID parentId
+        +Category parent
+        +Category[] children
+        +Product[] products
+        +CategoryAttribute[] attributes
+    }
+
+    class CategoryAttribute {
+        +UUID id
+        +UUID categoryId
+        +string name
+        +string type
+        +boolean isRequired
+        +boolean isFilterable
+        +string[] options
+        +Category category
+    }
+
+    class Product {
+        +UUID id
+        +string name
+        +string slug
+        +string description
+        +string longDescription
+        +decimal basePrice
+        +string[] images
+        +string brand
+        +string model
+        +boolean isActive
+        +boolean isFeatured
+        +int viewCount
+        +decimal rating
+        +int reviewCount
+        +DateTime createdAt
+        +DateTime updatedAt
+        +UUID categoryId
+        +Category category
+        +InventoryItem inventory
+        +ProductAttribute[] attributes
+        +ProductVariant[] variants
+        +Review[] reviews
+        +OrderItem[] orderItems
+        +PromotionProduct[] promotions
+    }
+
+    class ProductAttribute {
+        +UUID id
+        +UUID productId
+        +string name
+        +string value
+        +string unit
+        +Product product
+    }
+
+    class ProductVariant {
+        +UUID id
+        +UUID productId
+        +string sku
+        +string name
+        +string color
+        +string size
+        +decimal priceModifier
+        +string[] images
+        +int stock
+        +boolean isActive
+        +Product product
+    }
+
+    class Review {
+        +UUID id
+        +UUID productId
+        +UUID userId
+        +int rating
+        +string title
+        +string comment
+        +boolean isVerifiedPurchase
+        +int helpfulCount
+        +DateTime createdAt
+        +Product product
+        +User user
+    }
+
+    class InventoryItem {
+        +UUID id
+        +string sku
+        +int availableStock
+        +int reservedStock
+        +int totalStock
+        +int reorderPoint
+        +int reorderQuantity
+        +UUID productId
+        +string location
+        +DateTime lastRestocked
+        +DateTime updatedAt
+        +Product product
+        +StockMovement[] movements
+    }
+
+    class StockMovement {
+        +UUID id
+        +UUID inventoryId
+        +MovementType type
+        +int quantity
+        +int balanceAfter
+        +string reason
+        +string reference
+        +UUID performedBy
+        +DateTime createdAt
+        +InventoryItem inventory
+    }
+
+    class Cart {
+        +UUID id
+        +UUID userId
+        +string sessionId
+        +DateTime createdAt
+        +DateTime updatedAt
+        +DateTime expiresAt
+        +User user
+        +CartItem[] items
+    }
+
+    class CartItem {
+        +UUID id
+        +UUID cartId
+        +UUID productId
+        +UUID variantId
+        +int quantity
+        +decimal priceSnapshot
+        +decimal discountAmount
+        +UUID promotionId
+        +DateTime addedAt
+        +DateTime updatedAt
+        +Cart cart
+        +Product product
+        +ProductVariant variant
+    }
+
+    class Order {
+        +UUID id
+        +string orderNumber
+        +UUID userId
+        +OrderStatus status
+        +decimal subtotal
+        +decimal taxAmount
+        +decimal shippingCost
+        +decimal discountAmount
+        +decimal total
+        +UUID shippingAddressId
+        +UUID billingAddressId
+        +string paymentMethod
+        +string paymentTransactionId
+        +string trackingNumber
+        +string notes
+        +DateTime createdAt
+        +DateTime updatedAt
+        +DateTime paidAt
+        +DateTime shippedAt
+        +DateTime deliveredAt
+        +DateTime cancelledAt
+        +User user
+        +Address shippingAddress
+        +Address billingAddress
+        +OrderItem[] items
+        +OrderStatusHistory[] statusHistory
+        +OrderPromotion[] appliedPromotions
+    }
+
+    class OrderItem {
+        +UUID id
+        +UUID orderId
+        +UUID productId
+        +UUID variantId
+        +string productName
+        +string variantName
+        +string sku
+        +int quantity
+        +decimal unitPrice
+        +decimal discountAmount
+        +decimal taxAmount
+        +decimal totalPrice
+        +string productSnapshot
+        +DateTime createdAt
+        +Order order
+        +Product product
+        +ProductVariant variant
+    }
+
+    class OrderStatusHistory {
+        +UUID id
+        +UUID orderId
+        +OrderStatus fromStatus
+        +OrderStatus toStatus
+        +string comment
+        +UUID changedBy
+        +DateTime createdAt
+        +Order order
+        +User changedByUser
+    }
+
+    class OrderPromotion {
+        +UUID id
+        +UUID orderId
+        +UUID promotionId
+        +string promoCode
+        +decimal discountAmount
+        +string promotionName
+        +Order order
+        +Promotion promotion
+    }
+
+    class Promotion {
+        +UUID id
+        +string name
+        +string code
+        +string description
+        +PromotionType type
+        +decimal discountValue
+        +DiscountType discountType
+        +decimal minPurchaseAmount
+        +int maxUsageCount
+        +int currentUsageCount
+        +int maxUsagePerUser
+        +boolean isActive
+        +DateTime startDate
+        +DateTime endDate
+        +DateTime createdAt
+        +DateTime updatedAt
+        +PromotionProduct[] applicableProducts
+        +Category[] applicableCategories
+        +OrderPromotion[] orders
+    }
+
+    class PromotionProduct {
+        +UUID id
+        +UUID promotionId
+        +UUID productId
+        +Promotion promotion
+        +Product product
+    }
+
+    %% ============ ENUMS ============
+    
+    class MovementType {
+        <<enumeration>>
+        PURCHASE
+        SALE
+        RETURN
+        ADJUSTMENT
+        RESERVATION
+        RELEASE
+        DAMAGE
+        THEFT
+    }
+
+    class OrderStatus {
+        <<enumeration>>
+        PENDING
+        PAYMENT_PENDING
+        CONFIRMED
+        PROCESSING
+        PAID
+        SHIPPED
+        DELIVERED
+        CANCELLED
+        REFUNDED
+        FAILED
+    }
+
+    class PromotionType {
+        <<enumeration>>
+        BLACK_FRIDAY
+        FLASH_SALE
+        SEASONAL
+        WELCOME
+        LOYALTY
+        CLEARANCE
+    }
+
+    class DiscountType {
+        <<enumeration>>
+        PERCENTAGE
+        FIXED_AMOUNT
+        BUY_X_GET_Y
+        FREE_SHIPPING
+    }
+
+    class PermissionAction {
+        <<enumeration>>
+        CREATE
+        READ
+        UPDATE
+        DELETE
+        MANAGE
+        EXPORT
+        IMPORT
+    }
+
+    class PermissionResource {
+        <<enumeration>>
+        PRODUCTS
+        CATEGORIES
+        INVENTORY
+        ORDERS
+        USERS
+        ROLES
+        PERMISSIONS
+        PROMOTIONS
+        REVIEWS
+        SETTINGS
+        ANALYTICS
+    }
+
+    %% ============ MICROSERVICES ============
+    
+    class AuthService {
+        -PrismaClient prisma
+        -JwtService jwt
+        -RedisClient redis
+        -EventEmitter events
+        +register(dto): AuthResponse
+        +login(dto): AuthResponse
+        +validateToken(token): User
+        +refreshToken(token): AuthResponse
+        +logout(userId): void
+        +assignRole(userId, roleId): User
+        +checkPermission(userId, resource, action): boolean
+    }
+
+    class RoleService {
+        -PrismaClient prisma
+        -RedisClient redis
+        +createRole(dto): Role
+        +updateRole(id, dto): Role
+        +deleteRole(id): void
+        +assignPermissions(roleId, permissionIds): Role
+        +getRolePermissions(roleId): Permission[]
+        +invalidateCache(roleId): void
+    }
+
+    class CatalogService {
+        -PrismaClient prisma
+        -RedisClient redis
+        -EventEmitter events
+        +findProducts(query): PaginatedProducts
+        +findProductBySlug(slug): Product
+        +createProduct(dto): Product
+        +updateProduct(id, dto): Product
+        +deleteProduct(id): void
+        +searchProducts(query): Product[]
+        +getCategoryTree(): Category[]
+    }
+
+    class CartService {
+        -PrismaClient prisma
+        -RedisClient redis
+        -CatalogService catalog
+        -PromotionService promotion
+        +getCart(userId): Cart
+        +addItem(userId, dto): Cart
+        +updateItemQuantity(cartId, itemId, qty): Cart
+        +removeItem(cartId, itemId): Cart
+        +clearCart(userId): void
+        +applyPromotion(cartId, code): Cart
+        +calculateTotal(cart): CartTotal
+        +syncFromLocalStorage(userId, items): Cart
+    }
+
+    class InventoryService {
+        -PrismaClient prisma
+        -RedisClient redis
+        -EventEmitter events
+        +checkAvailability(sku, qty): boolean
+        +reserveStock(sku, qty, orderId): void
+        +releaseStock(sku, qty): void
+        +confirmSale(sku, qty): void
+        +updateStock(sku, qty, reason): InventoryItem
+        +getLowStock(threshold): InventoryItem[]
+        +recordMovement(dto): StockMovement
+    }
+
+    class OrderService {
+        -PrismaClient prisma
+        -CartService cart
+        -InventoryService inventory
+        -RabbitMQClient rabbitmq
+        -RedisClient redis
+        +createOrder(userId, dto): Order
+        +getOrderById(orderId): Order
+        +getUserOrders(userId, query): PaginatedOrders
+        +updateStatus(orderId, status, comment): Order
+        +cancelOrder(orderId): Order
+        +processPayment(orderId, paymentData): Order
+        +calculateTotal(items, promotions): OrderTotal
+    }
+
+    class PromotionService {
+        -PrismaClient prisma
+        -RedisClient redis
+        +createPromotion(dto): Promotion
+        +validatePromoCode(code, userId, cartTotal): Promotion
+        +applyPromotion(cart, promotion): CartTotal
+        +getActivePromotions(): Promotion[]
+        +incrementUsage(promotionId): void
+        +checkEligibility(userId, promotion): boolean
+    }
+
+    class ApiGateway {
+        -GraphQLSchema schema
+        -AuthService auth
+        -ServiceRegistry services
+        +resolveQuery(query, context): any
+        +resolveMutation(mutation, context): any
+        +authenticate(token): User
+        +authorize(user, resource, action): boolean
+    }
+
+    %% ============ INFRASTRUCTURE ============
+    
+    class RedisClient {
+        -RedisConnection client
+        +get(key): any
+        +set(key, value, ttl): void
+        +delete(key): void
+        +invalidatePattern(pattern): void
+        +cacheAside(key, fetcher, ttl): any
+    }
+
+    class RabbitMQClient {
+        -Connection connection
+        -Channel channel
+        +publish(exchange, routingKey, message): void
+        +subscribe(queue, handler): void
+        +createExchange(name, type): void
+        +createQueue(name, options): void
+    }
+
+    class EventEmitter {
+        +emit(event, data): void
+        +on(event, handler): void
+    }
+
+    %% ============ RELATIONSHIPS ============
+    
+    User "1" --> "1" Role
+    Role "*" --> "*" Permission
+    User "1" --> "*" Order
+    User "1" --> "0..1" Cart
+    User "1" --> "*" Address
+    User "1" --> "*" Review
+    
+    Category "0..1" --> "*" Category : parent-children
+    Category "1" --> "*" Product
+    Category "1" --> "*" CategoryAttribute
+    
+    Product "1" --> "1" InventoryItem
+    Product "1" --> "*" ProductAttribute
+    Product "1" --> "*" ProductVariant
+    Product "1" --> "*" Review
+    Product "*" --> "*" Promotion
+    Product "1" --> "*" OrderItem
+    Product "1" --> "*" CartItem
+    
+    Cart "1" --> "*" CartItem
+    CartItem "*" --> "1" Product
+    CartItem "*" --> "0..1" ProductVariant
+    
+    Order "1" --> "*" OrderItem
+    Order "1" --> "*" OrderStatusHistory
+    Order "1" --> "*" OrderPromotion
+    Order "*" --> "1" Address : shipping
+    Order "*" --> "1" Address : billing
+    
+    OrderItem "*" --> "1" Product
+    OrderItem "*" --> "0..1" ProductVariant
+    
+    Promotion "1" --> "*" PromotionProduct
+    Promotion "1" --> "*" OrderPromotion
+    
+    InventoryItem "1" --> "*" StockMovement
+    
+    %% Service Dependencies
+    ApiGateway --> AuthService
+    ApiGateway --> CatalogService
+    ApiGateway --> CartService
+    ApiGateway --> OrderService
+    
+    AuthService --> RoleService
+    CartService --> CatalogService
+    CartService --> PromotionService
+    OrderService --> CartService
+    OrderService --> InventoryService
+    OrderService --> PromotionService
+    
+    AuthService --> RedisClient
+    CatalogService --> RedisClient
+    InventoryService --> RabbitMQClient
+    OrderService --> RabbitMQClient
+
+    class ActivityLog {
+  +UUID id [UUIDv7]
+  +UUID userId
+  +string action (BUTTON_CLICK, PAGE_VIEW, PRODUCT_VIEW)
+  +string resource (product_id, category_slug)
+  +Json metadata {buttonId, coordinates, duration}
+  +string ipAddress
+  +string userAgent
+  +DateTime timestamp
+}
+
+class UserSession {
+  +UUID id [UUIDv7]
+  +UUID userId
+  +string refreshToken (hashed)
+  +string ipAddress
+  +string userAgent
+  +DateTime createdAt
+  +DateTime lastActivity
+  +DateTime expiresAt
+}
+
+class VerificationCode {
+  +UUID id [UUIDv7]
+  +UUID userId
+  +string code (6 digits)
+  +string type (EMAIL, PHONE)
+  +int attempts
+  +boolean isUsed
+  +DateTime expiresAt
+  +DateTime createdAt
+}
+
+class PasswordResetToken {
+  +UUID id [UUIDv7]
+  +UUID userId
+  +string tokenHash
+  +DateTime expiresAt
+  +boolean isUsed
+  +DateTime createdAt
+}

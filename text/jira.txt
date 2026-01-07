@@ -1,0 +1,45 @@
+EPIC: GZ-INFRA - Infrastructure & DevOps
+  ├── GZ-001: Project Setup & CI/CD
+  ├── GZ-002: Docker & Kubernetes Config
+  └── GZ-003: Database Setup & Prisma
+
+EPIC: GZ-AUTH - Authentication & Authorization
+  ├── GZ-010: JWT Authentication
+  ├── GZ-011: RBAC System
+  ├── GZ-012: Email Verification
+  ├── GZ-013: Phone Verification
+  └── GZ-014: Password Reset Flow
+
+EPIC: GZ-CATALOG - Product Catalog
+  ├── GZ-020: Category Management
+  ├── GZ-021: Product CRUD
+  ├── GZ-022: Product Variants
+  ├── GZ-023: Promotions System
+  └── GZ-024: Search & Filtering
+
+EPIC: GZ-INVENTORY - Stock Management
+  ├── GZ-030: Inventory CRUD
+  ├── GZ-031: Stock Reservation
+  ├── GZ-032: Stock Movement Tracking
+  └── GZ-033: Low Stock Alerts
+
+EPIC: GZ-ORDER - Order Management
+  ├── GZ-040: Cart Management
+  ├── GZ-041: Order Creation
+  ├── GZ-042: Order State Machine
+  └── GZ-043: Order History
+
+EPIC: GZ-PAYMENT - Payment Integration
+  ├── GZ-050: Stripe Checkout
+  ├── GZ-051: Webhook Handling
+  └── GZ-052: Payment Idempotency
+
+EPIC: GZ-NOTIFY - Notifications
+  ├── GZ-060: Email Service
+  ├── GZ-061: WebSocket Gateway
+  └── GZ-062: Template System
+
+EPIC: GZ-MONITOR - Monitoring & Logging
+  ├── GZ-070: Winston Logger
+  ├── GZ-071: Activity Tracking
+  └── GZ-072: User Analytics

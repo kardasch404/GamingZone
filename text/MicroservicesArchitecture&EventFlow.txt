@@ -1,0 +1,205 @@
+sequenceDiagram
+    participant Client
+    participant Gateway as API Gateway
+    participant Auth as Auth Service
+    participant Catalog as Catalog Service
+    participant Cart as Cart Service
+    participant Order as Order Service
+    participant Inventory as Inventory Service
+    participant RabbitMQ
+    participant Redis
+    participant PostgreSQL
+
+    %% ========== USER REGISTRATION & LOGIN ==========
+    
+    Note over Client,PostgreSQL: 1. User Registration Flow
+    Client->>Gateway: POST /auth/register
+    Gateway->>Auth: registerUser(dto)
+    Auth->>Auth: validateEmail()
+    Auth->>Auth: hashPassword()
+    Auth->>PostgreSQL: INSERT user, role
+    PostgreSQL-->>Auth: user created
+    Auth->>Auth: generateJWT()
+    Auth->>Redis: SET session:{userId}
+    Auth->>RabbitMQ: PUBLISH user.registered
+    Auth-->>Client: {accessToken, refreshToken, user}
+
+    Note over Client,PostgreSQL: 2. User Login Flow
+    Client->>Gateway: POST /auth/login
+    Gateway->>Auth: login(credentials)
+    Auth->>Redis: GET cached_user:{email}
+    alt Cache Hit
+        Redis-->>Auth: user data
+    else Cache Miss
+        Auth->>PostgreSQL: SELECT user, role, permissions
+        PostgreSQL-->>Auth: user + permissions
+        Auth->>Redis: SET cached_user:{email}
+    end
+    Auth->>Auth: validatePassword()
+    Auth->>Auth: generateJWT(user + permissions)
+    Auth->>Redis: SET session:{userId}
+    Auth-->>Client: {accessToken, user, permissions}
+
+    %% ========== BROWSE CATALOG WITH CACHE ==========
+    
+    Note over Client,Redis: 3. Browse Products (Public - Cached)
+    Client->>Gateway: GET /products?category=gaming&page=1
+    Gateway->>Catalog: findAll(query)
+    Catalog->>Redis: GET products:gaming:page:1
+    alt Cache Hit
+        Redis-->>Catalog: cached products
+        Catalog-->>Client: {data, meta} (fast)
+    else Cache Miss
+        Catalog->>PostgreSQL: SELECT products + inventory
+        PostgreSQL-->>Catalog: products[]
+        Catalog->>Redis: SET products:gaming:page:1 (TTL: 5min)
+        Catalog-->>Client: {data, meta}
+    end
+
+    %% ========== SHOPPING CART FLOW ==========
+    
+    Note over Client,PostgreSQL: 4. Add to Cart (LocalStorage Sync)
+    Client->>Client: localStorage.setItem('cart', items)
+    Client->>Gateway: POST /cart/items (with JWT)
+    Gateway->>JwtAuthGuard: validate()
+    JwtAuthGuard->>Redis: GET session:{userId}
+    Redis-->>JwtAuthGuard: valid session
+    Gateway->>Cart: addItem(userId, dto)
+    Cart->>Catalog: getProduct(productId)
+    Catalog->>Redis: GET product:{id}
+    alt Cache Hit
+        Redis-->>Catalog: product
+    else Cache Miss
+        Catalog->>PostgreSQL: SELECT product + inventory
+        PostgreSQL-->>Catalog: product
+        Catalog->>Redis: SET product:{id}
+    end
+    Catalog-->>Cart: product
+    Cart->>Inventory: checkStockAvailability(sku, qty)
+    Inventory->>Redis: GET inventory:{sku}
+    Redis-->>Inventory: stock info
+    alt Stock Available
+        Inventory-->>Cart: ✓ stock OK
+        Cart->>PostgreSQL: INSERT/UPDATE cart_item
+        PostgreSQL-->>Cart: cart updated
+        Cart->>Redis: DEL cart:{userId}
+        Cart-->>Client: {cart, total}
+    else Out of Stock
+        Inventory-->>Cart: ✗ insufficient stock
+        Cart-->>Client: 400 Out of Stock
+    end
+
+    %% ========== ORDER CREATION WITH EVENTS ==========
+    
+    Note over Client,RabbitMQ: 5. Create Order (Event-Driven)
+    Client->>Gateway: POST /orders (with JWT)
+    Gateway->>PermissionsGuard: checkPermission(CREATE_ORDER)
+    PermissionsGuard->>Redis: GET user:{id}:permissions
+    Redis-->>PermissionsGuard: permissions[]
+    PermissionsGuard-->>Gateway: ✓ authorized
+    
+    Gateway->>Order: createOrder(userId, dto)
+    Order->>Cart: getCart(userId)
+    Cart->>PostgreSQL: SELECT cart + items
+    PostgreSQL-->>Cart: cart
+    Cart-->>Order: cart{items}
+    
+    Order->>Order: calculateTotal(items)
+    Order->>PostgreSQL: BEGIN TRANSACTION
+    Order->>PostgreSQL: INSERT order + order_items
+    PostgreSQL-->>Order: order created
+    
+    Order->>RabbitMQ: PUBLISH order.created {orderId, items[]}
+    Order->>PostgreSQL: COMMIT TRANSACTION
+    Order-->>Client: 201 {order}
+
+    %% Async: Inventory listens to order.created
+    RabbitMQ->>Inventory: CONSUME order.created
+    Inventory->>Inventory: processOrderCreated(event)
+    
+    loop For each item in order
+        Inventory->>PostgreSQL: BEGIN TRANSACTION
+        Inventory->>PostgreSQL: UPDATE inventory (atomic)
+        Note right of Inventory: availableStock -= qty<br/>reservedStock += qty
+        alt Stock Updated
+            PostgreSQL-->>Inventory: ✓ updated
+            Inventory->>PostgreSQL: INSERT stock_movement
+            Inventory->>PostgreSQL: COMMIT
+            Inventory->>RabbitMQ: PUBLISH inventory.reserved {orderId, sku}
+        else Failed (Race Condition)
+            PostgreSQL-->>Inventory: ✗ constraint violation
+            Inventory->>PostgreSQL: ROLLBACK
+            Inventory->>RabbitMQ: PUBLISH inventory.reservation.failed {orderId}
+        end
+    end
+
+    %% Async: Order Service listens to inventory events
+    RabbitMQ->>Order: CONSUME inventory.reservation.failed
+    Order->>PostgreSQL: UPDATE order.status = CANCELLED
+    Order->>RabbitMQ: PUBLISH order.cancelled {orderId}
+    Order->>Client: Send Email/Notification
+
+    %% ========== PAYMENT PROCESSING ==========
+    
+    Note over Client,RabbitMQ: 6. Payment & Stock Confirmation
+    Client->>Gateway: POST /orders/:id/pay
+    Gateway->>Order: processPayment(orderId)
+    Order->>PostgreSQL: UPDATE order.status = PAID
+    Order->>RabbitMQ: PUBLISH order.paid {orderId, items[]}
+    Order-->>Client: 200 {order}
+
+    RabbitMQ->>Inventory: CONSUME order.paid
+    loop For each item
+        Inventory->>PostgreSQL: UPDATE inventory
+        Note right of Inventory: reservedStock -= qty<br/>totalStock -= qty
+        Inventory->>PostgreSQL: INSERT stock_movement (SOLD)
+    end
+    Inventory->>RabbitMQ: PUBLISH inventory.confirmed {orderId}
+
+    %% ========== ORDER CANCELLATION ==========
+    
+    Note over Client,RabbitMQ: 7. Cancel Order (Release Stock)
+    Client->>Gateway: PATCH /orders/:id/cancel
+    Gateway->>Order: cancelOrder(orderId, userId)
+    Order->>PostgreSQL: SELECT order WHERE userId = ?
+    PostgreSQL-->>Order: order
+    Order->>PostgreSQL: UPDATE order.status = CANCELLED
+    Order->>RabbitMQ: PUBLISH order.cancelled {orderId, items[]}
+    Order-->>Client: 200 {order}
+
+    RabbitMQ->>Inventory: CONSUME order.cancelled
+    loop For each item
+        Inventory->>PostgreSQL: UPDATE inventory
+        Note right of Inventory: availableStock += qty<br/>reservedStock -= qty
+        Inventory->>PostgreSQL: INSERT stock_movement (CANCELLED)
+    end
+    Inventory->>Redis: DEL inventory:{sku}
+
+    %% ========== ADMIN OPERATIONS ==========
+    
+    Note over Client,Redis: 8. Admin: Update Stock
+    Client->>Gateway: PATCH /inventory/:sku/stock (JWT)
+    Gateway->>PermissionsGuard: checkPermission(MANAGE_INVENTORY)
+    PermissionsGuard->>Redis: GET role:{roleId}:permissions
+    Redis-->>PermissionsGuard: permissions[]
+    alt Has Permission
+        PermissionsGuard-->>Gateway: ✓ authorized
+        Gateway->>Inventory: updateStock(sku, dto)
+        Inventory->>PostgreSQL: UPDATE inventory + INSERT movement
+        Inventory->>Redis: DEL inventory:{sku}
+        Inventory->>RabbitMQ: PUBLISH inventory.updated {sku}
+        Inventory-->>Client: 200 {inventory}
+    else No Permission
+        PermissionsGuard-->>Client: 403 Forbidden
+    end
+
+    Note over Client,PostgreSQL: 9. Admin: Create Dynamic Role
+    Client->>Gateway: POST /roles (JWT)
+    Gateway->>PermissionsGuard: checkPermission(MANAGE_ROLES)
+    PermissionsGuard-->>Gateway: ✓ SUPER_ADMIN
+    Gateway->>Auth: createRole(dto)
+    Auth->>PostgreSQL: INSERT role
+    Auth->>PostgreSQL: INSERT role_permissions
+    Auth->>Redis: DEL roles:*
+    Auth->>RabbitMQ: PUBLISH role.created {roleId}
+    Auth-->>Client: 201 {role}

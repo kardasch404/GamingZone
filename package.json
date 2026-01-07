@@ -2,7 +2,17 @@
   "name": "@gaming-zone/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "start": "nx serve",
+    "build": "nx build",
+    "test": "nx test",
+    "lint": "nx workspace-lint && nx lint",
+    "format": "nx format:write",
+    "format:check": "nx format:check",
+    "affected:build": "nx affected --target=build",
+    "affected:test": "nx affected --target=test",
+    "affected:lint": "nx affected --target=lint"
+  },
   "private": true,
   "dependencies": {
     "@nestjs/common": "^11.0.0",

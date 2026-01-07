@@ -1,0 +1,952 @@
+# 🚀 YouShop Microservices - 8-Day Enterprise Sprint
+
+## 🌳 Git Branch Strategy (GitFlow)
+
+```
+main (production)
+├── develop (integration)
+    ├── feature/infrastructure-setup
+    ├── feature/shared-libraries
+    ├── feature/auth-service
+    ├── feature/catalog-service
+    ├── feature/cart-service
+    ├── feature/inventory-service
+    ├── feature/order-service
+    ├── feature/api-gateway
+    └── feature/devops-microservices
+```
+
+### Commit Convention (Conventional Commits + Scope)
+```
+<type>(<service>/<scope>): <subject>
+
+Types: feat, fix, refactor, test, docs, chore, perf
+Services: auth, catalog, cart, inventory, order, gateway, shared
+```
+
+**Examples:**
+```bash
+feat(auth/jwt): implement refresh token rotation
+fix(inventory/stock): resolve race condition in reservation
+refactor(shared/dto): extract common DTOs to library
+test(order/service): add e2e tests for order lifecycle
+perf(catalog/cache): add Redis caching layer
+docs(gateway/swagger): complete API documentation
+```
+
+---
+
+## 📆 DAY 1: Infrastructure & Shared Libraries (22/12/2025)
+
+### 🔀 Branch: `feature/infrastructure-setup`
+
+#### Task 1.1: Initialize Monorepo Structure
+```bash
+# Commit: "chore(root): initialize NestJS monorepo with Nx/Turborepo"
+
+# Create root directory
+mkdir youshop-microservices && cd youshop-microservices
+
+# Initialize pnpm workspace (better for monorepos)
+pnpm init
+```
+
+**Create `pnpm-workspace.yaml`:**
+```yaml
+packages:
+  - 'apps/*'
+  - 'libs/*'
+  - 'packages/*'
+```
+
+**Git operations:**
+```bash
+git init
+git add pnpm-workspace.yaml package.json
+git commit -m "chore(root): initialize pnpm monorepo structure"
+git branch develop
+git checkout develop
+git checkout -b feature/infrastructure-setup
+```
+
+---
+
+#### Task 1.2: Create Microservices Structure
+```bash
+# Commit: "chore(services): scaffold all microservice apps"
+
+# Create apps folder
+mkdir -p apps/{api-gateway,auth-service,catalog-service,cart-service,inventory-service,order-service}
+
+# Create each service
+cd apps/auth-service
+nest new . --skip-git --package-manager pnpm --strict
+cd ../..
+
+# Repeat for each service
+# OR use a script:
+```
+
+**Create `scripts/create-service.sh`:**
+```bash
+#!/bin/bash
+services=("api-gateway" "auth-service" "catalog-service" "cart-service" "inventory-service" "order-service")
+
+for service in "${services[@]}"; do
+  cd apps/$service
+  nest new . --skip-git --package-manager pnpm --strict
+  cd ../..
+done
+```
+
+**Git operations:**
+```bash
+chmod +x scripts/create-service.sh
+./scripts/create-service.sh
+
+git add apps/
+git commit -m "chore(services): scaffold 6 microservices with NestJS"
+```
+
+---
+
+#### Task 1.3: Setup Shared Libraries
+```bash
+# Commit: "feat(shared): create shared libraries for DTOs, types, and utilities"
+
+mkdir -p libs/{common,contracts,config}
+
+# libs/common - Shared utilities, guards, interceptors
+# libs/contracts - DTOs, Interfaces, Events
+# libs/config - Environment configuration
+```
+
+**Create `libs/contracts/src/index.ts`:**
+```typescript
+// Event contracts
+export interface OrderCreatedEvent {
+  orderId: string;
+  userId: string;
+  items: OrderItemDto[];
+  total: number;
+  timestamp: Date;
+}
+
+export interface InventoryReservedEvent {
+  orderId: string;
+  sku: string;
+  quantity: number;
+  timestamp: Date;
+}
+
+// DTOs
+export * from './dto';
+export * from './events';
+export * from './responses';
+```
+
+**Git operations:**
+```bash
+git add libs/
+git commit -m "feat(shared): create shared contract library with events and DTOs"
+```
+
+---
+
+#### Task 1.4: Docker & Infrastructure Setup
+```bash
+# Commit: "docker(infra): setup PostgreSQL, Redis, RabbitMQ compose"
+```
+
+**Create `docker-compose.infra.yml`:**
+```yaml
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: youshop-postgres
+    environment:
+      POSTGRES_USER: youshop
+      POSTGRES_PASSWORD: youshop_secret_2025
+      POSTGRES_DB: youshop_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - youshop-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U youshop"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: youshop-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - youshop-network
+    command: redis-server --appendonly yes --requirepass redis_secret_2025
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: youshop-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: youshop
+      RABBITMQ_DEFAULT_PASS: rabbitmq_secret_2025
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - youshop-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  youshop-network:
+    driver: bridge
+```
+
+**Git operations:**
+```bash
+git add docker-compose.infra.yml scripts/init-db.sql
+git commit -m "docker(infra): add PostgreSQL, Redis, RabbitMQ infrastructure"
+
+# Start infrastructure
+docker-compose -f docker-compose.infra.yml up -d
+
+# Verify health
+docker ps
+```
+
+---
+
+#### Task 1.5: Install Core Dependencies
+```bash
+# Commit: "deps(root): install shared dependencies for all services"
+
+# Root package.json
+pnpm add -w @nestjs/microservices @nestjs/config @nestjs/swagger
+pnpm add -w @prisma/client prisma
+pnpm add -w class-validator class-transformer
+pnpm add -w @nestjs/passport passport passport-jwt @nestjs/jwt bcrypt
+pnpm add -w ioredis amqplib
+pnpm add -w winston nest-winston
+
+pnpm add -D -w @types/passport-jwt @types/bcrypt @types/amqplib
+pnpm add -D -w prisma tsx
+```
+
+**Git operations:**
+```bash
+git add package.json pnpm-lock.yaml
+git commit -m "deps(root): install NestJS microservices, Prisma, Redis, RabbitMQ"
+```
+
+---
+
+#### Task 1.6: Setup Prisma Schema
+```bash
+# Commit: "feat(database): create complete Prisma schema with all models"
+
+cd apps/auth-service
+npx prisma init
+```
+
+**Create `prisma/schema.prisma`:**
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ AUTHENTICATION & AUTHORIZATION ============
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  firstName     String?
+  lastName      String?
+  phone         String?
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  roleId        String
+  role          Role      @relation(fields: [roleId], references: [id])
+  
+  orders        Order[]
+  cart          Cart?
+
+  @@map("users")
+}
+
+model Role {
+  id            String       @id @default(uuid())
+  name          String       @unique
+  description   String?
+  isSystem      Boolean      @default(false) // System roles can't be deleted
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  users         User[]
+  permissions   RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id            String       @id @default(uuid())
+  resource      String       // PRODUCTS, CATEGORIES, ORDERS, USERS, ROLES
+  action        String       // CREATE, READ, UPDATE, DELETE, MANAGE
+  description   String?
+  createdAt     DateTime     @default(now())
+
+  roles         RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId        String
+  permissionId  String
+  assignedAt    DateTime     @default(now())
+
+  role          Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission    Permission   @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ============ CATALOG ============
+
+model Category {
+  id            String       @id @default(uuid())
+  name          String
+  slug          String       @unique
+  description   String?
+  imageUrl      String?
+  displayOrder  Int          @default(0)
+  isActive      Boolean      @default(true)
+  parentId      String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  parent        Category?    @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children      Category[]   @relation("CategoryHierarchy")
+  products      Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id            String       @id @default(uuid())
+  name          String
+  slug          String       @unique
+  description   String?      @db.Text
+  basePrice     Decimal      @db.Decimal(10, 2)
+  images        String[]     @default([])
+  isActive      Boolean      @default(true)
+  isFeatured    Boolean      @default(false)
+  viewCount     Int          @default(0)
+  categoryId    String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  category      Category     @relation(fields: [categoryId], references: [id])
+  inventory     InventoryItem?
+  attributes    ProductAttribute[]
+  orderItems    OrderItem[]
+  cartItems     CartItem[]
+
+  @@index([categoryId])
+  @@index([slug])
+  @@map("products")
+}
+
+model ProductAttribute {
+  id            String       @id @default(uuid())
+  productId     String
+  name          String       // "Color", "Size", "RAM", "Storage"
+  value         String       // "Red", "XL", "16GB", "512GB"
+  createdAt     DateTime     @default(now())
+
+  product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_attributes")
+}
+
+// ============ INVENTORY ============
+
+model InventoryItem {
+  id            String       @id @default(uuid())
+  sku           String       @unique
+  availableStock Int         @default(0)
+  reservedStock  Int         @default(0)
+  totalStock    Int          @default(0) // Total physical stock
+  reorderPoint  Int          @default(10) // Low stock threshold
+  productId     String       @unique
+  lastRestocked DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  movements     StockMovement[]
+
+  @@index([sku])
+  @@map("inventory_items")
+}
+
+model StockMovement {
+  id            String       @id @default(uuid())
+  inventoryId   String
+  type          String       // RESTOCK, SALE, RESERVED, RELEASED, ADJUSTMENT
+  quantity      Int          // Positive or negative
+  reason        String?
+  performedBy   String?      // User ID
+  createdAt     DateTime     @default(now())
+
+  inventory     InventoryItem @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  @@index([inventoryId])
+  @@map("stock_movements")
+}
+
+// ============ SHOPPING CART ============
+
+model Cart {
+  id            String       @id @default(uuid())
+  userId        String       @unique
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items         CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id            String       @id @default(uuid())
+  cartId        String
+  productId     String
+  quantity      Int          @default(1)
+  priceSnapshot Decimal      @db.Decimal(10, 2) // Price at time of adding
+  addedAt       DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  cart          Cart         @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@map("cart_items")
+}
+
+// ============ ORDERS ============
+
+model Order {
+  id            String       @id @default(uuid())
+  orderNumber   String       @unique
+  userId        String
+  status        OrderStatus  @default(PENDING)
+  subtotal      Decimal      @db.Decimal(10, 2)
+  taxAmount     Decimal      @db.Decimal(10, 2)
+  shippingCost  Decimal      @default(0) @db.Decimal(10, 2)
+  discount      Decimal      @default(0) @db.Decimal(10, 2)
+  total         Decimal      @db.Decimal(10, 2)
+  
+  shippingAddress String?    @db.Text
+  billingAddress  String?    @db.Text
+  paymentMethod   String?
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  paidAt        DateTime?
+  cancelledAt   DateTime?
+
+  user          User         @relation(fields: [userId], references: [id])
+  items         OrderItem[]
+  statusHistory OrderStatusHistory[]
+
+  @@index([userId])
+  @@index([orderNumber])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String       @id @default(uuid())
+  orderId       String
+  productId     String
+  productName   String       // Snapshot
+  quantity      Int
+  unitPrice     Decimal      @db.Decimal(10, 2)
+  totalPrice    Decimal      @db.Decimal(10, 2)
+  sku           String
+  createdAt     DateTime     @default(now())
+
+  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product      @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id            String       @id @default(uuid())
+  orderId       String
+  fromStatus    OrderStatus?
+  toStatus      OrderStatus
+  comment       String?
+  changedBy     String?      // User ID
+  createdAt     DateTime     @default(now())
+
+  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_status_history")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+```
+
+**Git operations:**
+```bash
+git add prisma/schema.prisma
+git commit -m "feat(database): create complete Prisma schema with RBAC and events"
+
+# Generate Prisma Client
+npx prisma generate
+npx prisma migrate dev --name init
+```
+
+---
+
+#### Task 1.7: Seed Database
+```bash
+# Commit: "seed(database): add initial roles, permissions, and sample products"
+```
+
+**Create `prisma/seed.ts`:**
+```typescript
+import { PrismaClient, OrderStatus } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
+
+const prisma = new PrismaClient();
+
+async function main() {
+  console.log('🌱 Seeding database...');
+
+  // 1. Create Permissions
+  const permissions = await Promise.all([
+    // Products
+    prisma.permission.create({ data: { resource: 'PRODUCTS', action: 'CREATE', description: 'Create products' } }),
+    prisma.permission.create({ data: { resource: 'PRODUCTS', action: 'READ', description: 'View products' } }),
+    prisma.permission.create({ data: { resource: 'PRODUCTS', action: 'UPDATE', description: 'Update products' } }),
+    prisma.permission.create({ data: { resource: 'PRODUCTS', action: 'DELETE', description: 'Delete products' } }),
+    
+    // Categories
+    prisma.permission.create({ data: { resource: 'CATEGORIES', action: 'CREATE' } }),
+    prisma.permission.create({ data: { resource: 'CATEGORIES', action: 'READ' } }),
+    prisma.permission.create({ data: { resource: 'CATEGORIES', action: 'UPDATE' } }),
+    prisma.permission.create({ data: { resource: 'CATEGORIES', action: 'DELETE' } }),
+    
+    // Inventory
+    prisma.permission.create({ data: { resource: 'INVENTORY', action: 'MANAGE', description: 'Full inventory control' } }),
+    
+    // Orders
+    prisma.permission.create({ data: { resource: 'ORDERS', action: 'READ' } }),
+    prisma.permission.create({ data: { resource: 'ORDERS', action: 'UPDATE', description: 'Update order status' } }),
+    prisma.permission.create({ data: { resource: 'ORDERS', action: 'DELETE', description: 'Cancel orders' } }),
+    
+    // Users & Roles
+    prisma.permission.create({ data: { resource: 'USERS', action: 'MANAGE' } }),
+    prisma.permission.create({ data: { resource: 'ROLES', action: 'MANAGE' } }),
+  ]);
+
+  console.log(`✅ Created ${permissions.length} permissions`);
+
+  // 2. Create Roles
+  const superAdminRole = await prisma.role.create({
+    data: {
+      name: 'SUPER_ADMIN',
+      description: 'Full system access',
+      isSystem: true,
+      permissions: {
+        create: permissions.map(p => ({ permissionId: p.id }))
+      }
+    }
+  });
+
+  const managerRole = await prisma.role.create({
+    data: {
+      name: 'MANAGER',
+      description: 'Manages products and inventory',
+      isSystem: false,
+      permissions: {
+        create: permissions
+          .filter(p => ['PRODUCTS', 'CATEGORIES', 'INVENTORY', 'ORDERS'].includes(p.resource))
+          .map(p => ({ permissionId: p.id }))
+      }
+    }
+  });
+
+  const clientRole = await prisma.role.create({
+    data: {
+      name: 'CLIENT',
+      description: 'Regular customer',
+      isSystem: true,
+      permissions: {
+        create: permissions
+          .filter(p => p.action === 'READ' || (p.resource === 'ORDERS' && p.action === 'DELETE'))
+          .map(p => ({ permissionId: p.id }))
+      }
+    }
+  });
+
+  console.log('✅ Created 3 roles');
+
+  // 3. Create Users
+  const hashedPassword = await bcrypt.hash('Admin123!', 10);
+  
+  const admin = await prisma.user.create({
+    data: {
+      email: 'admin@youshop.ma',
+      password: hashedPassword,
+      firstName: 'Super',
+      lastName: 'Admin',
+      roleId: superAdminRole.id,
+      isActive: true
+    }
+  });
+
+  const client = await prisma.user.create({
+    data: {
+      email: 'client@youshop.ma',
+      password: await bcrypt.hash('Client123!', 10),
+      firstName: 'Ahmed',
+      lastName: 'Benkirane',
+      roleId: clientRole.id,
+      isActive: true
+    }
+  });
+
+  console.log('✅ Created 2 users');
+
+  // 4. Create Categories
+  const sportsCategory = await prisma.category.create({
+    data: {
+      name: 'Sports & Football',
+      slug: 'sports-football',
+      description: 'Équipements sportifs et maillots CAN 2025',
+      displayOrder: 1,
+      isActive: true
+    }
+  });
+
+  const canSubcategory = await prisma.category.create({
+    data: {
+      name: 'CAN 2025 Morocco',
+      slug: 'can-2025-morocco',
+      description: 'Collection officielle CAN 2025',
+      parentId: sportsCategory.id,
+      displayOrder: 1,
+      isActive: true
+    }
+  });
+
+  const gamingCategory = await prisma.category.create({
+    data: {
+      name: 'Gaming & Consoles',
+      slug: 'gaming-consoles',
+      description: 'PlayStation, Xbox, Nintendo et accessoires',
+      displayOrder: 2,
+      isActive: true
+    }
+  });
+
+  const techCategory = await prisma.category.create({
+    data: {
+      name: 'Tech & Electronics',
+      slug: 'tech-electronics',
+      description: 'Smartphones, tablettes et accessoires',
+      displayOrder: 3,
+      isActive: true
+    }
+  });
+
+  console.log('✅ Created 4 categories');
+
+  // 5. Create Products - CAN 2025
+  const canProducts = [
+    {
+      name: 'Maillot Domicile Lions de l\'Atlas - CAN 2025',
+      slug: 'maillot-maroc-can-2025-home',
+      description: 'Maillot officiel de l\'équipe nationale marocaine pour la CAN 2025. Tissu respirant, technologie Dri-FIT.',
+      basePrice: 899.00,
+      categoryId: canSubcategory.id,
+      isFeatured: true,
+      images: ['/products/morocco-jersey-home.jpg'],
+      sku: 'MOR-CAN25-HOME-L',
+      stock: 150
+    },
+    {
+      name: 'Écharpe Supporter Maroc CAN 2025',
+      slug: 'echarpe-maroc-can-2025',
+      description: 'Écharpe officielle aux couleurs du Maroc',
+      basePrice: 149.00,
+      categoryId: canSubcategory.id,
+      images: ['/products/morocco-scarf.jpg'],
+      sku: 'MOR-CAN25-SCARF',
+      stock: 300
+    },
+    {
+      name: 'Pack Supporter Complet CAN 2025',
+      slug: 'pack-supporter-can-2025',
+      description: 'Maillot + Écharpe + Drapeau',
+      basePrice: 1299.00,
+      categoryId: canSubcategory.id,
+      isFeatured: true,
+      images: ['/products/morocco-fan-kit.jpg'],
+      sku: 'MOR-CAN25-KIT',
+      stock: 75
+    }
+  ];
+
+  // 6. Create Products - Gaming
+  const gamingProducts = [
+    {
+      name: 'PlayStation 5 Standard Edition',
+      slug: 'ps5-standard-edition',
+      description: 'Console PS5 avec lecteur Blu-ray 4K Ultra HD, 825GB SSD',
+      basePrice: 5499.00,
+      categoryId: gamingCategory.id,
+      isFeatured: true,
+      images: ['/products/ps5-standard.jpg'],
+      sku: 'PS5-STD-825GB',
+      stock: 25
+    },
+    {
+      name: 'PlayStation 5 Digital Edition',
+      slug: 'ps5-digital-edition',
+      description: 'Console PS5 100% numérique, 825GB SSD',
+      basePrice: 4499.00,
+      categoryId: gamingCategory.id,
+      images: ['/products/ps5-digital.jpg'],
+      sku: 'PS5-DIG-825GB',
+      stock: 30
+    },
+    {
+      name: 'DualSense Controller - Cosmic Red',
+      slug: 'dualsense-cosmic-red',
+      description: 'Manette PS5 sans fil avec retour haptique',
+      basePrice: 749.00,
+      categoryId: gamingCategory.id,
+      images: ['/products/dualsense-red.jpg'],
+      sku: 'PS5-CTL-RED',
+      stock: 100
+    },
+    {
+      name: 'EA Sports FC 25 - PS5',
+      slug: 'ea-fc-25-ps5',
+      description: 'Le nouveau FIFA 25 avec les Lions de l\'Atlas',
+      basePrice: 699.00,
+      categoryId: gamingCategory.id,
+      isFeatured: true,
+      images: ['/products/ea-fc-25.jpg'],
+      sku: 'GAME-EAFC25-PS5',
+      stock: 200
+    }
+  ];
+
+  // 7. Create Products - Tech
+  const techProducts = [
+    {
+      name: 'iPhone 15 Pro Max 256GB',
+      slug: 'iphone-15-pro-max-256gb',
+      description: 'Titanium, A17 Pro, Appareil photo 48MP',
+      basePrice: 14999.00,
+      categoryId: techCategory.id,
+      isFeatured: true,
+      images: ['/products/iphone-15-pro.jpg'],
+      sku: 'APPL-IP15PM-256',
+      stock: 15
+    },
+    {
+      name: 'AirPods Pro (2ème génération)',
+      slug: 'airpods-pro-2',
+      description: 'Réduction active du bruit, Audio spatial',
+      basePrice: 2799.00,
+      categoryId: techCategory.id,
+      images: ['/products/airpods-pro-2.jpg'],
+      sku: 'APPL-APP2-GEN2',
+      stock: 50
+    }
+  ];
+
+  const allProducts = [...canProducts, ...gamingProducts, ...techProducts];
+
+  for (const productData of allProducts) {
+    const { sku, stock, ...productFields } = productData;
+    
+    const product = await prisma.product.create({
+      data: {
+        ...productFields,
+        inventory: {
+          create: {
+            sku,
+            availableStock: stock,
+            reservedStock: 0,
+            totalStock: stock,
+            reorderPoint: 10,
+            lastRestocked: new Date()
+          }
+        }
+      }
+    });
+  }
+
+  console.log(`✅ Created ${allProducts.length} products with inventory`);
+
+  console.log('🎉 Database seeding completed!');
+}
+
+main()
+  .catch((e) => {
+    console.error('❌ Seeding failed:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+```
+
+**Update `package.json`:**
+```json
+{
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}
+```
+
+**Git operations:**
+```bash
+git add prisma/seed.ts package.json
+git commit -m "seed(database): add roles, permissions, CAN 2025 and gaming products"
+
+# Run seed
+npx prisma db seed
+```
+
+---
+
+#### Task 1.8: Merge to Develop
+```bash
+# Push feature branch
+git push origin feature/infrastructure-setup
+
+# Create Pull Request (GitHub/GitLab)
+# After review, merge to develop
+git checkout develop
+git merge --no-ff feature/infrastructure-setup
+git push origin develop
+```
+
+---
+
+### 🎯 End of Day 1 Achievements:
+- ✅ Monorepo structure created
+- ✅ 6 microservices scaffolded
+- ✅ Infrastructure running (PostgreSQL, Redis, RabbitMQ)
+- ✅ Complete Prisma schema with RBAC
+- ✅ Database seeded with realistic data
+- ✅ Shared libraries initialized
+
+---
+
+## 📆 DAY 2: Auth Service + Dynamic RBAC (23/12/2025)
+
+### 🔀 Branch: `feature/auth-service`
+
+```bash
+git checkout develop
+git pull origin develop
+git checkout -b feature/auth-service
+```
+
+#### Task 2.1: Setup Auth Service DTOs
+```bash
+# Commit: "feat(auth/dto): create registration and login DTOs with validation"
+
+cd apps/auth-service/src
+mkdir -p modules/auth/dto modules/role/dto
+```
+
+**Create `modules/auth/dto/register.dto.ts`:**
+```typescript
+import { IsEmail, IsString, MinLength, MaxLength, Matches, IsOptional } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+
+export class RegisterDto {
+  @ApiProperty({ example: 'ahmed.benali@gmail.com' })
+  @IsEmail({}, { message: 'Email invalide' })
+  email: string;
+
+  @ApiProperty({ example: 'SecurePass123!' })
+  @IsString()
+  @MinLength(8, { message: 'Le mot de passe doit contenir au moins 8 caractères' })
+  @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
+    message: 'Mot de passe trop faible (majuscule, minuscule, chiffre requis)'
+  })
+  password: string;
+
+  @ApiProperty({ example: 'Ahmed' })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(50)
+  firstName: string;
+
+  @ApiProperty({ example: 'Benali' })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(50)
+  lastName:
