@@ -1,3 +1,2 @@
-# GamingZone
+# GamingZone Frontend
 
-E-commerce platform for gaming products.

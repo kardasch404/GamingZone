@@ -1,19 +1,33 @@
-# Text folder
-text/
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
 
-# Dependencies
-node_modules/
+# testing
+/coverage
 
-# Environment
-.env
-.env.local
+# next.js
+/.next/
+/out/
 
-# Logs
-*.log
+# production
+/build
 
-# OS
+# misc
 .DS_Store
+*.pem
 
-# IDE
-.vscode/
-.idea/
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
