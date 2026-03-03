@@ -1,26 +1,52 @@
-# GamingZone
+# GamingZone Frontend
 
-E-commerce platform for gaming products.
+Modern e-commerce frontend built with Next.js 15, TypeScript, and Tailwind CSS.
 
-## Setup
+## Tech Stack
 
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **State Management**: Zustand
+- **Data Fetching**: TanStack Query
+- **Forms**: React Hook Form + Zod
+- **API Client**: Axios
+- **Real-time**: Socket.io Client
+
+## Getting Started
+
+1. Install dependencies:
 ```bash
 npm install
 ```
 
-## Docker Infrastructure
-
-Start all services:
+2. Set up environment variables:
 ```bash
-docker-compose up -d
+cp .env.example .env.local
 ```
 
-Stop all services:
+3. Run the development server:
 ```bash
-docker-compose down
+npm run dev
 ```
 
-Services:
-- PostgreSQL: `localhost:5432`
-- Redis: `localhost:6379`
-- RabbitMQ: `localhost:5672` (Management UI: `localhost:15672`)
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Project Structure
+
+```
+src/
+├── app/              # Next.js App Router
+├── components/       # React components
+├── lib/             # Utilities, hooks, stores
+├── types/           # TypeScript types
+└── styles/          # Global styles
+```
+
+## Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run format` - Format code with Prettier
